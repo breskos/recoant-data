@@ -214,6 +214,22 @@ var Datasets = []Dataset{
 		Ordered:      true,
 	},
 	{
+		Name:        "segments/customers",
+		Folder:      "segments",
+		Description: "A shop with 4000 customers in 6 hidden segments over 90 days: students (age 18–25) and techies (30–45) buy games and electronics; families (30–45) and retirees (62–80) garden and household; outdoor people (25–55) sport and books; gourmets (35–65) kitchen and books. 400 products in 8 categories (50 each, Zipf popularity within a category, price 5–204). Each customer views 15–40 products, 80 % from the segment's categories, and buys 30 % of them. Attributes: age (sensitive), city (no influence) and membership (premium share 5–50 % by segment).",
+		Expected:    "Segments with k = 6 should recover the hidden segments only from behavior and attributes together: taste vectors alone merge the pairs that buy the same categories (students and techies, families and retirees), age alone merges segments whose age ranges overlap (techies, families, outdoor, gourmets). City carries no information and should not help. Age is sensitive: clustering on it needs an explicit decision (allow_sensitive). users.csv holds the true segment of every customer.",
+		Signals:     File{Name: "signals.csv", Rows: 143947, Header: []string{"time", "subject_kind", "subject_id", "object_kind", "object_id", "type", "value", "session"}},
+		Tables: []File{
+			{Name: "schema.csv", Rows: 5, Header: []string{"kind", "attribute", "type", "sensitive"}},
+			{Name: "attributes.csv", Rows: 12800, Header: []string{"time", "kind", "id", "op", "attribute", "value"}},
+			{Name: "users.csv", Rows: 4000, Header: []string{"user_id", "segment", "segment_name"}},
+		},
+		SubjectKinds: []string{"user"},
+		ObjectKinds:  []string{"product"},
+		Types:        []string{"purchase", "view"},
+		Ordered:      true,
+	},
+	{
 		Name:         "loading/edge-cases",
 		Folder:       "loading",
 		Description:  "Valid but tricky signals: out-of-order times, an exact duplicate, zero and implausibly long dwell, an unknown type without session, a time zone offset, non-ASCII IDs and IDs with commas and quotes, quantities, fractional and negative values, user → user and item → item signals, a self-loop, far past and future times, and kinds, IDs and types that differ only in case.",
