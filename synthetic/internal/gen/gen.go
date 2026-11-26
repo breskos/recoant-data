@@ -48,6 +48,8 @@ func All() []func() *Set {
 		SessionSequences,
 		Social,
 		CatalogRelations,
+		People,
+		Shop,
 		EdgeCases,
 		Invalid,
 		Large,

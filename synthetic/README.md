@@ -21,6 +21,18 @@ Every data set is a folder with a signals file and optional tables, all CSV with
 
 Signals map one to one onto `recoant.Signal`. Signals files marked *ordered* are sorted by time; read streams in this order.
 
+Data sets with attributes add `schema.csv` (kind, attribute, type, sensitive; types category, number, set, geo) and `attributes.csv`, a stream of attribute events sorted by time:
+
+| Column | Meaning |
+| --- | --- |
+| time | RFC 3339 timestamp |
+| kind, id | the entity |
+| op | `set` (also to update) or `delete` |
+| attribute | the attribute; empty with `delete` deletes the whole entity |
+| value | category as is, number, set elements joined by `|`, geo as `lat,lon`; empty with `delete` |
+
+Apply attribute events before signals of the same time.
+
 ## Data sets
 
 | Folder | Purpose |
@@ -31,6 +43,7 @@ Signals map one to one onto `recoant.Signal`. Signals files marked *ordered* are
 | [stream](#stream) | Streams to read in order, for online and incremental learning: trends, new items and preference drift. |
 | [session](#session) | Anonymous sessions, for session-based and next-item recommendation. |
 | [relations](#relations) | User–user and entity–entity relations, for user-to-user recommendations and graph models. |
+| [attributes](#attributes) | Users and entities with attributes (schema.csv) that change over time as events (attributes.csv), for filters, mutual preferences, deletion and retention. |
 | [loading](#loading) | Edge cases and invalid rows for loaders and ingestion. |
 | [benchmark](#benchmark) | Large files for performance measurements. |
 
@@ -152,6 +165,31 @@ Like basic/taste-clusters (3000 users, 1500 items, 10 clusters, 85 % loyalty) ov
 - `signals.csv`: 218803 signals, ordered by time; types visit, click, dwell, cart, purchase; subjects user; objects product
 - `users.csv`: 5000 rows; columns user_id, brand_1, brand_2, brand_3
 - `relations.csv`: 6290 rows; columns subject_kind, subject_id, relation, object_kind, object_id
+
+### attributes
+
+#### [attributes/people](attributes/people)
+
+A people-discovery app: 2500 users sign up in the first 30 days and are active for 120 days. Attributes (attributes.csv, schema in schema.csv): age 20–55, preferred age range min_age–max_age, gender (no influence on behavior), location in one of 5 cities (all at least 150 km apart, users within 15 km of the center) and 3–5 of 20 interests; age, gender and location are sensitive. A user views 20–50 profiles, 85 % in the own city. Like probability σ(−1.2 + 1.2·attractiveness + 0.5·shared interests), ×0.05 outside the user's preferred age range, ×0.2 in another city; 10 % of likes are superlikes; otherwise 70 % pass (1 % of them block). A like that completes a mutual like is followed by a message in 60 % of cases. During the period 20 % change their age preferences, 8 % move to another city, 10 % replace their interests, 3 % delete them, and 6 % delete their account: no signal involves them afterwards.
+
+**Expected:** Filters: {"attribute": "age", "within": ["min_age", "max_age"], "mutual": true} and {"attribute": "location", "max_distance_km": 50} should keep most likes and drop most passes: inside the subject's preferred age range and within 50 km 34 % of views become likes, outside 2 %, about 18 times less; mutual preferences matter for matches, because both sides decide. Apply attributes.csv in time order together with the signals: preferences, locations and interests change, and the user rows (signals, attributes) of deleted accounts must be removed at their deletion time (users.csv). Mutual likes (match) are the target for reciprocal matching (v0.6). With a retention of 60 days on the likes relation, pairs whose last signal is older than 60 days before the end drop out. Gender has no effect: models and filters should not need it. users.csv holds the hidden attractiveness.
+
+- `signals.csv`: 146262 signals, ordered by time; types block, like, message, pass, superlike, view; subjects user; objects user
+- `schema.csv`: 6 rows; columns kind, attribute, type, sensitive
+- `attributes.csv`: 16678 rows; columns time, kind, id, op, attribute, value
+- `users.csv`: 2500 rows; columns user_id, attractiveness, signup, city_at_signup, deleted
+
+#### [attributes/shop](attributes/shop)
+
+A shop over 90 days: 2500 products in 15 categories by 60 brands with a price (log-normal around a median of 10–500 per category), 2–4 of 30 tags and, for 30 %, a pickup store location. 4000 users have a budget min_price–max_price (max = 4.5·min), 3 preferred tags, a location and 2 hidden favorite categories (users.csv). Each user makes 20 visits: 70 % in a favorite category; the product is drawn ∝ exp(0.5·quality + shared tags), ×0.03 outside the budget, and walks down the funnel visit → click → dwell → cart → purchase, with cart and purchase ×0.1 outside the budget. 20 % of the products launch in days 30–90 (attributes at launch, no signals before), 5 % are discontinued in days 45–90, 10 % change their price once, 10 % of the users change their budget once (all in attributes.csv).
+
+**Expected:** The filter {"attribute": "price", "within": ["min_price", "max_price"]} should keep nearly all purchases (99 %) while dropping most products; {"attribute": "tags", "same": true} keeps the products users interact with: 54 % of visits share a tag with the user, against 28 % for a random product. Products launched late have only attributes at first: a cold-start case for feature-based models (v0.10). Discontinued products (products.csv) must be deleted at their time and never recommended afterwards. products.csv holds the hidden quality.
+
+- `signals.csv`: 169685 signals, ordered by time; types visit, click, dwell, cart, purchase; subjects user; objects product
+- `schema.csv`: 9 rows; columns kind, attribute, type, sensitive
+- `attributes.csv`: 27916 rows; columns time, kind, id, op, attribute, value
+- `users.csv`: 4000 rows; columns user_id, category_1, category_2
+- `products.csv`: 2500 rows; columns product_id, quality, launch, discontinued
 
 ### loading
 

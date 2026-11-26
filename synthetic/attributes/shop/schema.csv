@@ -1,0 +1,10 @@
+kind,attribute,type,sensitive
+product,category,category,false
+product,brand,category,false
+product,price,number,false
+product,tags,set,false
+product,store,geo,false
+user,min_price,number,false
+user,max_price,number,false
+user,tags,set,false
+user,location,geo,true

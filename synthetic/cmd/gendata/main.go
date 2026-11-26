@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"compress/gzip"
 	"encoding/csv"
+	"errors"
 	"flag"
 	"fmt"
 	"go/format"
@@ -24,28 +25,34 @@ func main() {
 	out := flag.String("out", ".", "output folder (the synthetic module)")
 	only := flag.String("only", "", "generate only data sets whose name contains this text; catalog and README are not rewritten")
 	flag.Parse()
+	if err := run(*out, *only, gen.All(), log.Printf); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// run writes the data sets of gens whose name contains only (all if
+// empty) below out, and with all of them catalog.go and README.md.
+func run(out, only string, gens []func() *gen.Set, logf func(string, ...any)) error {
 	var metas []synthetic.Dataset
-	for _, g := range gen.All() {
+	for _, g := range gens {
 		s := g()
-		if *only != "" && !strings.Contains(s.Meta.Name, *only) {
+		if only != "" && !strings.Contains(s.Meta.Name, only) {
 			continue
 		}
-		m, err := write(*out, s)
+		m, err := write(out, s)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
-		log.Printf("%-28s %9d signals", m.Name, m.Signals.Rows)
+		logf("%-28s %9d signals", m.Name, m.Signals.Rows)
 		metas = append(metas, m)
 	}
-	if *only != "" {
-		return
+	if only != "" {
+		return nil
 	}
-	if err := writeFile(filepath.Join(*out, "catalog.go"), func(w io.Writer) error { return catalog(w, metas) }); err != nil {
-		log.Fatal(err)
+	if err := writeFile(filepath.Join(out, "catalog.go"), func(w io.Writer) error { return catalog(w, metas) }); err != nil {
+		return err
 	}
-	if err := writeFile(filepath.Join(*out, "README.md"), func(w io.Writer) error { return readme(w, metas) }); err != nil {
-		log.Fatal(err)
-	}
+	return writeFile(filepath.Join(out, "README.md"), func(w io.Writer) error { return readme(w, metas) })
 }
 
 func write(root string, s *gen.Set) (synthetic.Dataset, error) {
@@ -83,35 +90,23 @@ func write(root string, s *gen.Set) (synthetic.Dataset, error) {
 func kinds(s []synthetic.Signal) (subjects, objects, types []string) { return gen.Kinds(s) }
 
 func writeCSV(path string, gz bool, header []string, rows [][]string) error {
-	return writeFile(path, func(w io.Writer) error {
-		if !gz {
-			return writeRows(w, header, rows)
-		}
-		z, err := gzip.NewWriterLevel(w, gzip.BestCompression)
-		if err != nil {
-			return err
-		}
-		z.ModTime = gen.Start // reproducible output
-		if err := writeRows(z, header, rows); err != nil {
-			_ = z.Close()
-			return err
-		}
-		return z.Close()
-	})
+	return writeFile(path, func(w io.Writer) error { return encodeCSV(w, gz, header, rows) })
+}
+
+// encodeCSV writes the header and rows to w, gzip-compressed if gz.
+func encodeCSV(w io.Writer, gz bool, header []string, rows [][]string) error {
+	if !gz {
+		return writeRows(w, header, rows)
+	}
+	z, _ := gzip.NewWriterLevel(w, gzip.BestCompression) // a valid level never fails
+	z.ModTime = gen.Start                                // reproducible output
+	return errors.Join(writeRows(z, header, rows), z.Close())
 }
 
 func writeRows(w io.Writer, header []string, rows [][]string) error {
 	cw := csv.NewWriter(w)
-	if err := cw.Write(header); err != nil {
-		return err
-	}
-	for _, r := range rows {
-		if err := cw.Write(r); err != nil {
-			return err
-		}
-	}
-	cw.Flush()
-	return cw.Error()
+	_ = cw.Write(header) // a write error is sticky; WriteAll reports it
+	return cw.WriteAll(rows)
 }
 
 func writeFile(path string, fn func(io.Writer) error) error {
@@ -120,15 +115,11 @@ func writeFile(path string, fn func(io.Writer) error) error {
 		return err
 	}
 	bw := bufio.NewWriterSize(f, 1<<20)
-	if err := fn(bw); err != nil {
-		_ = f.Close()
-		return err
+	err = fn(bw)
+	if err == nil {
+		err = bw.Flush()
 	}
-	if err := bw.Flush(); err != nil {
-		_ = f.Close()
-		return err
-	}
-	return f.Close()
+	return errors.Join(err, f.Close())
 }
 
 func quoteList(l []string) string {
@@ -169,10 +160,9 @@ func catalog(w io.Writer, ds []synthetic.Dataset) error {
 	}
 	b.WriteString("}\n")
 	src, err := format.Source([]byte(b.String()))
-	if err != nil {
-		return err
+	if err == nil {
+		_, err = w.Write(src)
 	}
-	_, err = w.Write(src)
 	return err
 }
 
@@ -183,6 +173,7 @@ var folders = []struct{ name, purpose string }{
 	{"stream", "Streams to read in order, for online and incremental learning: trends, new items and preference drift."},
 	{"session", "Anonymous sessions, for session-based and next-item recommendation."},
 	{"relations", "User–user and entity–entity relations, for user-to-user recommendations and graph models."},
+	{"attributes", "Users and entities with attributes (schema.csv) that change over time as events (attributes.csv), for filters, mutual preferences, deletion and retention."},
 	{"loading", "Edge cases and invalid rows for loaders and ingestion."},
 	{"benchmark", "Large files for performance measurements."},
 }
@@ -211,6 +202,18 @@ Every data set is a folder with a signals file and optional tables, all CSV with
 | session | session ID, may be empty |
 
 Signals map one to one onto ` + "`recoant.Signal`" + `. Signals files marked *ordered* are sorted by time; read streams in this order.
+
+Data sets with attributes add ` + "`schema.csv`" + ` (kind, attribute, type, sensitive; types category, number, set, geo) and ` + "`attributes.csv`" + `, a stream of attribute events sorted by time:
+
+| Column | Meaning |
+| --- | --- |
+| time | RFC 3339 timestamp |
+| kind, id | the entity |
+| op | ` + "`set`" + ` (also to update) or ` + "`delete`" + ` |
+| attribute | the attribute; empty with ` + "`delete`" + ` deletes the whole entity |
+| value | category as is, number, set elements joined by ` + "`|`" + `, geo as ` + "`lat,lon`" + `; empty with ` + "`delete`" + ` |
+
+Apply attribute events before signals of the same time.
 
 ## Data sets
 
