@@ -200,6 +200,20 @@ var Datasets = []Dataset{
 		Ordered:      true,
 	},
 	{
+		Name:        "matching/dating",
+		Folder:      "matching",
+		Description: "A dating app where both sides decide, over 90 days. 3000 users each have a hidden style (one of 6) and prefer one style in others; attractiveness is N(0, 1). Each user views up to 60 profiles: 70 % drawn at random, 30 % weighted by e^attractiveness, as an app that ranks by popularity would. A like is shown to the liked user, who looks at the liker in 50 % of the cases (\"who liked you\") and decides the same way. Like probability σ(−2 − 0.8·max(own attractiveness, 0) + 0.6·attractiveness of the other + 3·[the other has the preferred style]): attractive profiles get more likes and are pickier. Otherwise 80 % pass. A like that completes a mutual like is followed by a message in 70 % of cases. The most attractive 10 % receive 28 % of all likes; a like to them is returned in 6.6 % of cases, a like to the others in 16.9 %.",
+		Expected:    "The target is matches, not likes: a recommendation succeeds if the user likes the profile and the profile likes the user back. One-way models (popularity, ALS on likes) recommend what the user likes, which includes many attractive profiles who rarely like back; reciprocal matching (recoant v0.6: interest in both directions, combined with a harmonic mean) should raise the mutual hit rate, and exposure balancing should spread recommendations (lower Gini) without losing matches. users.csv holds the hidden style, preferred style and attractiveness: a perfect matcher recommends profiles whose style the user prefers and who prefer the user's style.",
+		Signals:     File{Name: "signals.csv", Rows: 364581, Header: []string{"time", "subject_kind", "subject_id", "object_kind", "object_id", "type", "value", "session"}},
+		Tables: []File{
+			{Name: "users.csv", Rows: 3000, Header: []string{"user_id", "style", "preferred_style", "attractiveness", "likes_received", "likes_given"}},
+		},
+		SubjectKinds: []string{"user"},
+		ObjectKinds:  []string{"user"},
+		Types:        []string{"like", "message", "pass", "view"},
+		Ordered:      true,
+	},
+	{
 		Name:         "loading/edge-cases",
 		Folder:       "loading",
 		Description:  "Valid but tricky signals: out-of-order times, an exact duplicate, zero and implausibly long dwell, an unknown type without session, a time zone offset, non-ASCII IDs and IDs with commas and quotes, quantities, fractional and negative values, user → user and item → item signals, a self-loop, far past and future times, and kinds, IDs and types that differ only in case.",
