@@ -1,0 +1,7 @@
+type,informative,description
+visit,weak,"30 % of visits go to intent items, 70 % to random items"
+click,medium,"click rate 0.7 on intent items, 0.4 otherwise"
+dwell,strong,"median dwell 120 s on intent items, 12 s otherwise"
+share,strong,"share rate 0.25 on intent items, 0.02 otherwise"
+hover,none,"random items, independent of intent"
+purchase,target,80 % of intent items are bought in days 21–27

@@ -1,0 +1,11 @@
+time,subject_kind,subject_id,object_kind,object_id,type,value,session
+yesterday,user,u1,item,i1,visit,1,
+2026-01-01T00:00:00Z,,u1,item,i1,visit,1,
+2026-01-01T00:00:00Z,user,,item,i1,visit,1,
+2026-01-01T00:00:00Z,user,u1,,i1,visit,1,
+2026-01-01T00:00:00Z,user,u1,item,,visit,1,
+2026-01-01T00:00:00Z,user,u1,item,i1,,1,
+2026-01-01T00:00:00Z,user,u1,item,i1,visit,one,
+2026-01-01T00:00:00Z,user,u1,item,i1,visit,NaN,
+2026-01-01T00:00:00Z,user,u1,item,i1,visit,+Inf,
+2026-01-01T00:00:00Z,user,u1,item,i1,visit,1
