@@ -1,0 +1,6 @@
+kind,attribute,type,sensitive
+user,age,number,true
+user,city,category,false
+user,membership,category,false
+product,category,category,false
+product,price,number,false

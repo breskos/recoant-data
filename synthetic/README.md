@@ -45,6 +45,7 @@ Apply attribute events before signals of the same time.
 | [relations](#relations) | User–user and entity–entity relations, for user-to-user recommendations and graph models. |
 | [attributes](#attributes) | Users and entities with attributes (schema.csv) that change over time as events (attributes.csv), for filters, mutual preferences, deletion and retention. |
 | [matching](#matching) | Two-sided markets where both sides decide, for reciprocal matching: the target is mutual likes, not likes. |
+| [segments](#segments) | Customers in hidden segments defined by behavior and attributes together, for clustering and profiles; the true segments are included. |
 | [loading](#loading) | Edge cases and invalid rows for loaders and ingestion. |
 | [benchmark](#benchmark) | Large files for performance measurements. |
 
@@ -202,6 +203,19 @@ A dating app where both sides decide, over 90 days. 3000 users each have a hidde
 
 - `signals.csv`: 364581 signals, ordered by time; types like, message, pass, view; subjects user; objects user
 - `users.csv`: 3000 rows; columns user_id, style, preferred_style, attractiveness, likes_received, likes_given
+
+### segments
+
+#### [segments/customers](segments/customers)
+
+A shop with 4000 customers in 6 hidden segments over 90 days: students (age 18–25) and techies (30–45) buy games and electronics; families (30–45) and retirees (62–80) garden and household; outdoor people (25–55) sport and books; gourmets (35–65) kitchen and books. 400 products in 8 categories (50 each, Zipf popularity within a category, price 5–204). Each customer views 15–40 products, 80 % from the segment's categories, and buys 30 % of them. Attributes: age (sensitive), city (no influence) and membership (premium share 5–50 % by segment).
+
+**Expected:** Segments with k = 6 should recover the hidden segments only from behavior and attributes together: taste vectors alone merge the pairs that buy the same categories (students and techies, families and retirees), age alone merges segments whose age ranges overlap (techies, families, outdoor, gourmets). City carries no information and should not help. Age is sensitive: clustering on it needs an explicit decision (allow_sensitive). users.csv holds the true segment of every customer.
+
+- `signals.csv`: 143947 signals, ordered by time; types purchase, view; subjects user; objects product
+- `schema.csv`: 5 rows; columns kind, attribute, type, sensitive
+- `attributes.csv`: 12800 rows; columns time, kind, id, op, attribute, value
+- `users.csv`: 4000 rows; columns user_id, segment, segment_name
 
 ### loading
 
