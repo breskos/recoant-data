@@ -50,6 +50,7 @@ func All() []func() *Set {
 		CatalogRelations,
 		People,
 		Shop,
+		Dating,
 		EdgeCases,
 		Invalid,
 		Large,

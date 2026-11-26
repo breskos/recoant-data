@@ -44,6 +44,7 @@ Apply attribute events before signals of the same time.
 | [session](#session) | Anonymous sessions, for session-based and next-item recommendation. |
 | [relations](#relations) | User–user and entity–entity relations, for user-to-user recommendations and graph models. |
 | [attributes](#attributes) | Users and entities with attributes (schema.csv) that change over time as events (attributes.csv), for filters, mutual preferences, deletion and retention. |
+| [matching](#matching) | Two-sided markets where both sides decide, for reciprocal matching: the target is mutual likes, not likes. |
 | [loading](#loading) | Edge cases and invalid rows for loaders and ingestion. |
 | [benchmark](#benchmark) | Large files for performance measurements. |
 
@@ -190,6 +191,17 @@ A shop over 90 days: 2500 products in 15 categories by 60 brands with a price (l
 - `attributes.csv`: 27916 rows; columns time, kind, id, op, attribute, value
 - `users.csv`: 4000 rows; columns user_id, category_1, category_2
 - `products.csv`: 2500 rows; columns product_id, quality, launch, discontinued
+
+### matching
+
+#### [matching/dating](matching/dating)
+
+A dating app where both sides decide, over 90 days. 3000 users each have a hidden style (one of 6) and prefer one style in others; attractiveness is N(0, 1). Each user views up to 60 profiles: 70 % drawn at random, 30 % weighted by e^attractiveness, as an app that ranks by popularity would. A like is shown to the liked user, who looks at the liker in 50 % of the cases ("who liked you") and decides the same way. Like probability σ(−2 − 0.8·max(own attractiveness, 0) + 0.6·attractiveness of the other + 3·[the other has the preferred style]): attractive profiles get more likes and are pickier. Otherwise 80 % pass. A like that completes a mutual like is followed by a message in 70 % of cases. The most attractive 10 % receive 28 % of all likes; a like to them is returned in 6.6 % of cases, a like to the others in 16.9 %.
+
+**Expected:** The target is matches, not likes: a recommendation succeeds if the user likes the profile and the profile likes the user back. One-way models (popularity, ALS on likes) recommend what the user likes, which includes many attractive profiles who rarely like back; reciprocal matching (recoant v0.6: interest in both directions, combined with a harmonic mean) should raise the mutual hit rate, and exposure balancing should spread recommendations (lower Gini) without losing matches. users.csv holds the hidden style, preferred style and attractiveness: a perfect matcher recommends profiles whose style the user prefers and who prefer the user's style.
+
+- `signals.csv`: 364581 signals, ordered by time; types like, message, pass, view; subjects user; objects user
+- `users.csv`: 3000 rows; columns user_id, style, preferred_style, attractiveness, likes_received, likes_given
 
 ### loading
 

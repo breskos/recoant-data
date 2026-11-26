@@ -174,6 +174,7 @@ var folders = []struct{ name, purpose string }{
 	{"session", "Anonymous sessions, for session-based and next-item recommendation."},
 	{"relations", "User–user and entity–entity relations, for user-to-user recommendations and graph models."},
 	{"attributes", "Users and entities with attributes (schema.csv) that change over time as events (attributes.csv), for filters, mutual preferences, deletion and retention."},
+	{"matching", "Two-sided markets where both sides decide, for reciprocal matching: the target is mutual likes, not likes."},
 	{"loading", "Edge cases and invalid rows for loaders and ingestion."},
 	{"benchmark", "Large files for performance measurements."},
 }
