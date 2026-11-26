@@ -8,13 +8,7 @@ import (
 
 // EdgeCases holds valid but tricky rows for loaders and ingestion.
 func EdgeCases() *Set {
-	t := func(s string) time.Time {
-		v, err := time.Parse(time.RFC3339, s)
-		if err != nil {
-			panic(err)
-		}
-		return v
-	}
+	t := mustTime
 	sig := func(ts, sk, sid, ok, oid, typ string, v float64, sess string) synthetic.Signal {
 		return synthetic.Signal{Time: t(ts), SubjectKind: sk, SubjectID: sid, ObjectKind: ok, ObjectID: oid, Type: typ, Value: v, Session: sess}
 	}
@@ -71,4 +65,14 @@ var InvalidRows = [][]string{
 	{"2026-01-01T00:00:00Z", "user", "u1", "item", "i1", "visit", "NaN", ""},
 	{"2026-01-01T00:00:00Z", "user", "u1", "item", "i1", "visit", "+Inf", ""},
 	{"2026-01-01T00:00:00Z", "user", "u1", "item", "i1", "visit", "1"},
+}
+
+// mustTime parses an RFC 3339 time written in the source; it panics on a
+// typo, which only a change of this file can cause.
+func mustTime(s string) time.Time {
+	v, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }

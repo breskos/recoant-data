@@ -1,0 +1,7 @@
+kind,attribute,type,sensitive
+user,age,number,true
+user,min_age,number,false
+user,max_age,number,false
+user,gender,category,true
+user,location,geo,true
+user,interests,set,false

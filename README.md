@@ -4,7 +4,7 @@ Data for the tests, examples and benchmarks of [recoant](https://github.com/bres
 
 ## Synthetic data
 
-The [synthetic](synthetic) folder holds generated data sets with a known structure, so you can tell how well a recommender should do. They contain no third-party and no personal data. Every data set is a folder with a `signals.csv` (time, subject, object, signal type, value, session) and tables with the hidden structure that generated it.
+The [synthetic](synthetic) folder holds generated data sets with a known structure, so you can tell how well a recommender should do. They contain no third-party and no personal data. Every data set is a folder with a `signals.csv` (time, subject, object, signal type, value, session) and tables with the hidden structure that generated it; data sets with attributes add a schema and a stream of attribute events.
 
 | Folder | Use it for | Data sets |
 | --- | --- | --- |
@@ -14,6 +14,7 @@ The [synthetic](synthetic) folder holds generated data sets with a known structu
 | [stream](synthetic/stream) | Online and incremental learning | trending news, preference drift |
 | [session](synthetic/session) | Session-based, next-item | anonymous sessions along item chains |
 | [relations](synthetic/relations) | User-to-user, graph models | follow graph, product–brand–category relations |
+| [attributes](synthetic/attributes) | Attribute filters, mutual preferences, deletion, retention | people discovery with age preferences and locations, shop with budgets, price changes and discontinued products |
 | [loading](synthetic/loading) | Loaders and ingestion | edge cases, invalid rows |
 | [benchmark](synthetic/benchmark) | Performance | 3.5 million signals, 200,000 users (gzip) |
 
